@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../annex_provider.dart';
-import '../../models/annex_model.dart'; // Ensure this import is here
+import '../../widgets/annex_card.dart';
 import 'annex_details_screen.dart';
 
 class INeedScreen extends StatefulWidget {
@@ -10,18 +10,29 @@ class INeedScreen extends StatefulWidget {
 }
 
 class _INeedScreenState extends State<INeedScreen> {
-  // FILTER STATES
+
   String _searchText = "";
-  RangeValues _priceRange = RangeValues(0, 100000); // 0 to 1 Lakh
+  RangeValues _priceRange = RangeValues(0, 100000); 
   int _minRooms = 1;
 
-  // Helper to show the Bottom Sheet
+  @override
+  void initState() {
+    super.initState();
+    
+    Future.microtask(() {
+      Provider.of<AnnexProvider>(context, listen: false).fetchAnnexes();
+    });
+  }
+
+  
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Color(0xFF1E1E1E),
       builder: (ctx) {
-        return StatefulBuilder( // Needed to update state INSIDE the sheet
+        return StatefulBuilder(
+          
           builder: (BuildContext context, StateSetter setSheetState) {
             return Padding(
               padding: const EdgeInsets.all(20.0),
@@ -29,39 +40,49 @@ class _INeedScreenState extends State<INeedScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Filter Results", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  Divider(),
+                  Text("Filter Results",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      )),
+                  Divider(color: Colors.white30),
+
                   
-                  // 1. Price Range Slider
-                  Text("Price Range: Rs ${_priceRange.start.round()} - Rs ${_priceRange.end.round()}"),
+                  Text(
+                    "Price Range: Rs ${_priceRange.start.round()} - Rs ${_priceRange.end.round()}",
+                    style: TextStyle(color: Colors.white),
+                  ),
                   RangeSlider(
                     values: _priceRange,
                     min: 0,
-                    max: 200000, // Max limit 2 Lakhs
+                    max: 200000, 
                     divisions: 20,
-                    labels: RangeLabels(
-                      "${_priceRange.start.round()}", 
-                      "${_priceRange.end.round()}"
-                    ),
+                    activeColor: Colors.blue,
+                    inactiveColor: Colors.blue.withOpacity(0.3),
+                    labels: RangeLabels("${_priceRange.start.round()}",
+                        "${_priceRange.end.round()}"),
                     onChanged: (values) {
                       setSheetState(() {
                         _priceRange = values;
                       });
-                      setState(() {}); // Update main screen
+                      setState(() {}); 
                     },
                   ),
 
                   SizedBox(height: 10),
 
-                  // 2. Room Counter
+                 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("Min Rooms: $_minRooms", style: TextStyle(fontSize: 16)),
+                      Text("Min Rooms: $_minRooms",
+                          style: TextStyle(fontSize: 16, color: Colors.white)),
                       Row(
                         children: [
                           IconButton(
-                            icon: Icon(Icons.remove_circle_outline),
+                            icon: Icon(Icons.remove_circle_outline,
+                                color: Colors.blue),
                             onPressed: () {
                               if (_minRooms > 1) {
                                 setSheetState(() => _minRooms--);
@@ -70,7 +91,8 @@ class _INeedScreenState extends State<INeedScreen> {
                             },
                           ),
                           IconButton(
-                            icon: Icon(Icons.add_circle_outline),
+                            icon: Icon(Icons.add_circle_outline,
+                                color: Colors.blue),
                             onPressed: () {
                               setSheetState(() => _minRooms++);
                               setState(() {});
@@ -85,11 +107,15 @@ class _INeedScreenState extends State<INeedScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context), // Close sheet
+                      onPressed: () => Navigator.pop(context), 
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
                       child: Text("Apply Filters"),
                     ),
                   ),
-                  SizedBox(height: 20), // Bottom padding
+                  SizedBox(height: 20), 
                 ],
               ),
             );
@@ -104,134 +130,117 @@ class _INeedScreenState extends State<INeedScreen> {
     final annexData = Provider.of<AnnexProvider>(context);
     final allItems = annexData.items;
 
-    // --- FILTER LOGIC STARTS HERE ---
+    
     final filteredItems = allItems.where((annex) {
-      // 1. Check Text (Location OR Title)
-      final matchText = 
-          annex.location.toLowerCase().contains(_searchText.toLowerCase()) || 
-          annex.title.toLowerCase().contains(_searchText.toLowerCase());
-      
-      // 2. Check Price
-      final matchPrice = 
-          annex.price >= _priceRange.start && 
-          annex.price <= _priceRange.end;
+     
+      final matchText =
+          annex.location.toLowerCase().contains(_searchText.toLowerCase()) ||
+              annex.title.toLowerCase().contains(_searchText.toLowerCase());
 
-      // 3. Check Rooms
+      
+      final matchPrice =
+          annex.price >= _priceRange.start && annex.price <= _priceRange.end;
+
+      
       final matchRooms = annex.rooms >= _minRooms;
 
       return matchText && matchPrice && matchRooms;
     }).toList();
-    // --- FILTER LOGIC ENDS HERE ---
+    
 
     return Scaffold(
-      appBar: AppBar(title: Text("I Need (Find Annex)")),
+      appBar: AppBar(
+        title: Text("Find Annex", style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF1E1E1E),
+      ),
       body: Column(
         children: [
-          // SEARCH BAR & FILTER BUTTON
+          
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
+                    style: TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: "Search City or Area...",
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: EdgeInsets.symmetric(vertical: 0),
+                      hintStyle: TextStyle(color: Colors.white60),
+                      prefixIcon: Icon(Icons.search, color: Colors.blue),
+                      filled: true,
+                      fillColor: Color(0xFF2C2C2C),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.blue),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide:
+                            BorderSide(color: Colors.blue.withOpacity(0.5)),
+                      ),
                     ),
                     onChanged: (val) {
-                      setState(() {
-                        _searchText = val;
-                      });
+                      setState(() => _searchText = val);
                     },
                   ),
                 ),
-                SizedBox(width: 10),
-                // Filter Icon Button
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50], 
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.blue)
+                SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _showFilterSheet,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: IconButton(
-                    icon: Icon(Icons.tune, color: Colors.blue),
-                    onPressed: _showFilterSheet,
-                  ),
-                )
+                  child: Icon(Icons.tune),
+                ),
               ],
             ),
           ),
+
           
-          // ACTIVE FILTERS CHIPS (Visual Feedback)
           if (_minRooms > 1 || _priceRange.end < 100000)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 children: [
-                  Text("Filters active: ", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  if(_minRooms > 1) Chip(label: Text("Rooms: $_minRooms+"), labelStyle: TextStyle(fontSize: 10)),
+                  Text("Filters active: ",
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  if (_minRooms > 1)
+                    Chip(
+                        label: Text("Rooms: $_minRooms+"),
+                        labelStyle: TextStyle(fontSize: 10)),
                   SizedBox(width: 5),
-                  Chip(label: Text("Rs ${_priceRange.end.toInt()} max"), labelStyle: TextStyle(fontSize: 10)),
+                  Chip(
+                      label: Text("Rs ${_priceRange.end.toInt()} max"),
+                      labelStyle: TextStyle(fontSize: 10)),
                 ],
               ),
             ),
 
-          // LIST VIEW
+         
           Expanded(
-            child: filteredItems.isEmpty 
-            ? Center(child: Text("No annexes found matching filters."))
-            : ListView.builder(
-              itemCount: filteredItems.length,
-              itemBuilder: (ctx, i) {
-                final annex = filteredItems[i];
-                return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: InkWell( // Makes card clickable
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => AnnexDetailsScreen(annex: annex)
-                      ));
+            child: filteredItems.isEmpty
+                ? Center(child: Text("No annexes found matching filters."))
+                : ListView.builder(
+                    itemCount: filteredItems.length,
+                    itemBuilder: (ctx, i) {
+                      final annex = filteredItems[i];
+                      return AnnexCard(
+                        annex: annex,
+                        provider: annexData,
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      AnnexDetailsScreen(annex: annex)));
+                        },
+                      );
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Row(
-                        children: [
-                          // Thumbnail
-                          Container(
-                            width: 80, height: 80, 
-                            color: Colors.grey[300],
-                            child: Icon(Icons.home, size: 40, color: Colors.grey),
-                          ),
-                          SizedBox(width: 10),
-                          // Details
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(annex.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                Text(annex.location, style: TextStyle(color: Colors.grey[600])),
-                                SizedBox(height: 5),
-                                Row(
-                                  children: [
-                                    Icon(Icons.bed, size: 16, color: Colors.blue),
-                                    SizedBox(width: 4),
-                                    Text("${annex.rooms} Beds"),
-                                    SizedBox(width: 15),
-                                    Text("Rs ${annex.price.toInt()}", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
